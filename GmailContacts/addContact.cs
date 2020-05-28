@@ -42,6 +42,8 @@ namespace GmailContacts
                     gs.Login();
                     gs.GetContactsFromGoogle();
                     gs.CreateContact(contact);
+                    gs.WriteContactsToDatabase();
+                    
                     
                     ctx.SaveChanges();
                 }catch(Exception ex)

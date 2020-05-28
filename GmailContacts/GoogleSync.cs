@@ -5,6 +5,7 @@ using Google.GData.Client;
 using Google.GData.Contacts;
 using Google.GData.Extensions;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -20,8 +21,9 @@ namespace GmailContacts
         private ContactsRequest cr;
         private Feed<Google.Contacts.Contact> f;
         private UserCredential credential;
+        public List<Google.Contacts.Contact> Contacts { get; private set; }
 
-        public Feed<Google.Contacts.Contact> Feed { get => f; set => f = value; }
+        public Feed<Google.Contacts.Contact> Feed { get => f;}
 
         public GoogleSync()
         {
@@ -69,57 +71,8 @@ namespace GmailContacts
             {
 
                 GetFeed();
-                foreach (Google.Contacts.Contact c in f.Entries)
-                {
-                    
-                    bool isPresent = false;
-                    Contact contact = new Contact();
-                    if (c.Name.GivenName == null) { continue; }
-                    else contact.FirstName = c.Name.GivenName;
-
-                    if (c.Name.FamilyName == null) contact.LastName = "none";
-                    else contact.LastName = c.Name.FamilyName;
-
-                    if (c.Organizations.FirstOrDefault() == null)
-                    {
-                        contact.CompanyName = "none";
-                        contact.JobTitle = "none";
-
-                    }
-                    else
-                    {
-                        contact.CompanyName = c.Organizations.FirstOrDefault().Name;
-                        contact.JobTitle = c.Organizations.FirstOrDefault().JobDescription;
-                    }
-
-                    if (c.Phonenumbers.FirstOrDefault() == null) contact.PhoneNumber = "none";
-                    else contact.PhoneNumber = c.Phonenumbers.FirstOrDefault().Value;
-
-                    using (var ctx = new ContactContext())
-                    {
-                        try
-                        {
-                            var saved = ctx.Contacts.ToList();
-                            for (int i = 0; i < saved.Count; i++)
-                            {
-                                if (saved[i].IsMatch(contact))
-                                {
-                                    //MessageBox.Show(contact.FirstName + " is already in the database.");
-                                    isPresent = true;
-                                    break;
-                                }
-                            }
-                            if (isPresent) continue;
-                            ctx.Contacts.Add(contact);
-                            ctx.SaveChanges();
-
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show(ex.Message);
-                        }
-                    }
-                }
+                Contacts = f.Entries.ToList();
+                
             }
             catch (Exception)
             {
@@ -135,6 +88,60 @@ namespace GmailContacts
                     {
                         Console.WriteLine(e.Message);
                         return;
+                    }
+                }
+            }
+        }
+
+        public void WriteContactsToDatabase()
+        {
+            foreach (Google.Contacts.Contact c in Contacts)
+            {
+                bool isPresent = false;
+                Contact contact = new Contact();
+                if (c.Name.GivenName == null) { continue; }
+                else contact.FirstName = c.Name.GivenName;
+
+                if (c.Name.FamilyName == null) contact.LastName = "none";
+                else contact.LastName = c.Name.FamilyName;
+
+                if (c.Organizations.FirstOrDefault() == null)
+                {
+                    contact.CompanyName = "none";
+                    contact.JobTitle = "none";
+
+                }
+                else
+                {
+                    contact.CompanyName = c.Organizations.FirstOrDefault().Name;
+                    contact.JobTitle = c.Organizations.FirstOrDefault().JobDescription;
+                }
+
+                if (c.Phonenumbers.FirstOrDefault() == null) contact.PhoneNumber = "none";
+                else contact.PhoneNumber = c.Phonenumbers.FirstOrDefault().Value;
+
+                using (var ctx = new ContactContext())
+                {
+                    try
+                    {
+                        var saved = ctx.Contacts.ToList();
+                        for (int i = 0; i < saved.Count; i++)
+                        {
+                            if (saved[i].IsMatch(contact))
+                            {
+                                //MessageBox.Show(contact.FirstName + " is already in the database.");
+                                isPresent = true;
+                                break;
+                            }
+                        }
+                        if (isPresent) continue;
+                        ctx.Contacts.Add(contact);
+                        ctx.SaveChanges();
+
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message);
                     }
                 }
             }

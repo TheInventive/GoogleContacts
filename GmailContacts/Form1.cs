@@ -46,51 +46,98 @@ namespace GmailContacts
                 MessageBox.Show("Please select a row to delete.");
                 return;
             }
-            for (int i = 0; i < dataGridView1.SelectedRows.Count; i++)
+            using (var ctx = new ContactContext())
             {
-                using (var ctx = new ContactContext())
+                var contact = new Contact()
                 {
-                    var contact = new Contact()
-                    {
-                        ContactId = int.Parse(dataGridView1.SelectedRows[i].Cells[0].Value.ToString()),
-                        FirstName = dataGridView1.SelectedRows[i].Cells[1].Value.ToString(),
-                        LastName = dataGridView1.SelectedRows[i].Cells[2].Value.ToString(),
-                        CompanyName = dataGridView1.SelectedRows[i].Cells[3].Value.ToString(),
-                        JobTitle = dataGridView1.SelectedRows[i].Cells[4].Value.ToString(),
-                        PhoneNumber = dataGridView1.SelectedRows[i].Cells[5].Value.ToString()
-                    };
+                    ContactId = int.Parse(dataGridView1.SelectedRows[0].Cells[0].Value.ToString()),
+                    FirstName = dataGridView1.SelectedRows[0].Cells[1].Value.ToString(),
+                    LastName = dataGridView1.SelectedRows[0].Cells[2].Value.ToString(),
+                    CompanyName = dataGridView1.SelectedRows[0].Cells[3].Value.ToString(),
+                    JobTitle = dataGridView1.SelectedRows[0].Cells[4].Value.ToString(),
+                    PhoneNumber = dataGridView1.SelectedRows[0].Cells[5].Value.ToString()
+                };
 
-                    ctx.Contacts.Attach(contact);
-                    ctx.Contacts.Remove(contact);
+                ctx.Contacts.Attach(contact);
+                ctx.Contacts.Remove(contact);
 
-                    GoogleSync gs = new GoogleSync();
-                    gs.Login();
-                    gs.GetFeed();
-                    foreach (Google.Contacts.Contact c in gs.Feed.Entries)
+                GoogleSync gs = new GoogleSync();
+                gs.Login();
+                gs.GetFeed();
+                foreach (Google.Contacts.Contact c in gs.Feed.Entries)
+                {
+                    if (contact.IsMatch(c))
                     {
-                        if (contact.IsMatch(c))
-                        {
-                            gs.DeleteContact(c);
-                        }
-                    }  
-                    ctx.SaveChanges();
-                    UpdateTable();
+                        gs.DeleteContact(c);
+                        break;
+                    }
                 }
+                ctx.SaveChanges();
+                UpdateTable();
+
             }
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
             //Update
+            List<Contact> list;
+            
             GoogleSync gs = new GoogleSync();
             gs.Login();
             gs.GetContactsFromGoogle();
+            using (var ctx = new ContactContext())
+            {
+                list = ctx.Contacts.ToList();
+                foreach (var item in list)
+                {
+                    if (gs.Contacts == null) return;
+                    bool found = false;
+                    for (int i = 0; i < gs.Contacts.Count; i++)
+                    {
+                        if (item.IsMatch(gs.Contacts[i]))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        gs.CreateContact(item);
+
+                    }
+                }
+            }
+            gs.GetContactsFromGoogle();
+            gs.WriteContactsToDatabase();
             UpdateTable();
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
             //Modify
+            if (dataGridView1.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Please select a row to Modify.");
+                return;
+            }
+            var contact = new Contact()
+            {
+                ContactId = int.Parse(dataGridView1.SelectedRows[0].Cells[0].Value.ToString()),
+                FirstName = dataGridView1.SelectedRows[0].Cells[1].Value.ToString(),
+                LastName = dataGridView1.SelectedRows[0].Cells[2].Value.ToString(),
+                CompanyName = dataGridView1.SelectedRows[0].Cells[3].Value.ToString(),
+                JobTitle = dataGridView1.SelectedRows[0].Cells[4].Value.ToString(),
+                PhoneNumber = dataGridView1.SelectedRows[0].Cells[5].Value.ToString()
+            };
+            using (modifyContact form = new modifyContact(contact))
+            {
+                DialogResult dr = form.ShowDialog();
+                if (dr == DialogResult.OK)
+                {
+                    UpdateTable();
+                }
+            }
         }
     }
 }
