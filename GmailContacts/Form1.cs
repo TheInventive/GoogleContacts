@@ -33,9 +33,7 @@ namespace GmailContacts
                 }
             }
 
-
         }
-
         private void Form1_Load(object sender, EventArgs e)
         {
             UpdateTable();
@@ -64,6 +62,17 @@ namespace GmailContacts
 
                     ctx.Contacts.Attach(contact);
                     ctx.Contacts.Remove(contact);
+
+                    GoogleSync gs = new GoogleSync();
+                    gs.Login();
+                    gs.GetFeed();
+                    foreach (Google.Contacts.Contact c in gs.Feed.Entries)
+                    {
+                        if (contact.IsMatch(c))
+                        {
+                            gs.DeleteContact(c);
+                        }
+                    }  
                     ctx.SaveChanges();
                     UpdateTable();
                 }
@@ -72,14 +81,16 @@ namespace GmailContacts
 
         private void button3_Click(object sender, EventArgs e)
         {
+            //Update
             GoogleSync gs = new GoogleSync();
             gs.Login();
+            gs.GetContactsFromGoogle();
             UpdateTable();
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
-
+            //Modify
         }
     }
 }

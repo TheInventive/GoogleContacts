@@ -14,21 +14,24 @@ namespace GmailContacts
 {
     public class GoogleSync
     {
-        static string[] Scopes = new string[] { "https://www.googleapis.com/auth/contacts.readonly" };
+        static string[] Scopes = new string[] { "https://www.google.com/m8/feeds/" };
         private OAuth2Parameters parameters = new OAuth2Parameters();
         private RequestSettings settings; 
         private ContactsRequest cr;
+        private Feed<Google.Contacts.Contact> f;
+        private UserCredential credential;
+
+        public Feed<Google.Contacts.Contact> Feed { get => f; set => f = value; }
 
         public GoogleSync()
         {
             settings = new RequestSettings("Google contacts tutorial", parameters);
             cr = new ContactsRequest(settings);
+
         }
 
         public void Login()
         {
-            UserCredential credential;
-
             using (var stream =
                 new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
             {
@@ -49,21 +52,26 @@ namespace GmailContacts
 
                 parameters.AccessToken = credential.Token.AccessToken;
                 parameters.RefreshToken = credential.Token.RefreshToken;
-                RunContactsSample(parameters);
+                
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
             }
         }
-        private  void RunContactsSample(OAuth2Parameters parameters)
+        public void GetFeed()
+        {
+            f = cr.GetContacts();
+        }
+        public void GetContactsFromGoogle()
         {
             try
             {
 
-                Feed<Google.Contacts.Contact> f = cr.GetContacts();
+                GetFeed();
                 foreach (Google.Contacts.Contact c in f.Entries)
                 {
+                    
                     bool isPresent = false;
                     Contact contact = new Contact();
                     if (c.Name.GivenName == null) { continue; }
@@ -78,8 +86,8 @@ namespace GmailContacts
                         contact.JobTitle = "none";
 
                     }
-                    else 
-                    { 
+                    else
+                    {
                         contact.CompanyName = c.Organizations.FirstOrDefault().Name;
                         contact.JobTitle = c.Organizations.FirstOrDefault().JobDescription;
                     }
@@ -96,7 +104,7 @@ namespace GmailContacts
                             {
                                 if (saved[i].IsMatch(contact))
                                 {
-                                    MessageBox.Show(contact.FirstName + " is already in the database.");
+                                    //MessageBox.Show(contact.FirstName + " is already in the database.");
                                     isPresent = true;
                                     break;
                                 }
@@ -104,7 +112,7 @@ namespace GmailContacts
                             if (isPresent) continue;
                             ctx.Contacts.Add(contact);
                             ctx.SaveChanges();
-                            
+
                         }
                         catch (Exception ex)
                         {
@@ -113,21 +121,34 @@ namespace GmailContacts
                     }
                 }
             }
-            catch (Exception a)
+            catch (Exception)
             {
-                MessageBox.Show(a.Message);
+                MessageBox.Show("Az access token lejárt. Probáld újra és adj engedéjt.");
+                string path = "Google.Apis.Auth.OAuth2.Responses.TokenResponse-user";
+                if (System.IO.File.Exists(@"token.json\" + path))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(@"token.json\" + path);
+                    }
+                    catch (System.IO.IOException e)
+                    {
+                        Console.WriteLine(e.Message);
+                        return;
+                    }
+                }
             }
         }
 
-        public Google.Contacts.Contact CreateContact()
+        public Google.Contacts.Contact CreateContact(Contact contact)
         {
             Google.Contacts.Contact newEntry = new Google.Contacts.Contact();
             // Set the contact's name.
             newEntry.Name = new Name()
             {
-                FullName = "Elizabeth Bennet",
-                GivenName = "Elizabeth",
-                FamilyName = "Bennet",
+                FullName = contact.FirstName+" "+contact.LastName,
+                GivenName = contact.FirstName,
+                FamilyName = contact.LastName,
             };
             newEntry.Content = "Notes";
             // Set the contact's phone numbers.
@@ -135,7 +156,7 @@ namespace GmailContacts
             {
                 Primary = true,
                 Rel = ContactsRelationships.IsHome,
-                Value = "(206)555-1212",
+                Value = contact.PhoneNumber,
             });
             // Set the contact's IM information.
             newEntry.IMs.Add(new IMAddress()
@@ -146,12 +167,27 @@ namespace GmailContacts
             });
             newEntry.Organizations.Add(new Organization()
             {
-                Name = "Valami"
+                Name = contact.CompanyName,
+                JobDescription = contact.JobTitle
             });
             // Insert the contact.
             Uri feedUri = new Uri(ContactsQuery.CreateContactsUri("default"));
             Google.Contacts.Contact createdEntry = cr.Insert(feedUri, newEntry);
             return createdEntry;
+        }
+
+        public void DeleteContact(Google.Contacts.Contact contact)
+        {
+            try
+            {
+                cr.Delete(contact); 
+              
+            }
+            catch (GDataVersionConflictException e)
+            {
+                // Etags mismatch: handle the exception.
+                MessageBox.Show(e.Message);
+            }
         }
     }
 }

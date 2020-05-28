@@ -49,6 +49,18 @@ namespace GmailContacts
             }
             return false;
         }
+        public bool IsMatch(Google.Contacts.Contact contact)
+        {
+            if (this.FirstName == contact.Name.GivenName &&
+            (contact.Name.FamilyName == null || this.LastName == contact.Name.FamilyName) &&
+            (contact.Organizations.FirstOrDefault() == null || this.CompanyName == contact.Organizations.FirstOrDefault().Name ) &&
+            (contact.Organizations.FirstOrDefault() == null || this.JobTitle == contact.Organizations.FirstOrDefault().JobDescription) &&
+            (contact.Phonenumbers.FirstOrDefault() == null || this.PhoneNumber == contact.Phonenumbers.FirstOrDefault().Value))
+            {
+                return true;
+            }
+            return false;
+        }
     }
 
     
