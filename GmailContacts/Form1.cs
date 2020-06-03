@@ -63,8 +63,7 @@ namespace GmailContacts
 
                 GoogleSync gs = new GoogleSync();
                 gs.Login();
-                gs.GetFeed();
-                foreach (Google.Contacts.Contact c in gs.Feed.Entries)
+                foreach (Google.Contacts.Contact c in gs.Contacts)
                 {
                     if (contact.IsMatch(c))
                     {
@@ -80,12 +79,11 @@ namespace GmailContacts
 
         private void button3_Click(object sender, EventArgs e)
         {
-            //Update
+            //Login
             List<Contact> list;
             
             GoogleSync gs = new GoogleSync();
             gs.Login();
-            gs.GetContactsFromGoogle();
             using (var ctx = new ContactContext())
             {
                 list = ctx.Contacts.ToList();
@@ -104,7 +102,6 @@ namespace GmailContacts
                     if (!found)
                     {
                         gs.CreateContact(item);
-
                     }
                 }
             }

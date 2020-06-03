@@ -48,13 +48,10 @@ namespace GmailContacts
 
                 GoogleSync gs = new GoogleSync();
                 gs.Login();
-                gs.GetFeed();
-                foreach (Google.Contacts.Contact c in gs.Feed.Entries)
+                foreach (Google.Contacts.Contact c in gs.Contacts)
                 {
                     if (Contact.IsMatch(c))
                     {
-                        //Megfigyelés:
-                        //Ha nyitva hagyod a contacts.google.com oldalt akkor nem fogja kitörölni.
                         gs.DeleteContact(c);
                         break;
                     }
@@ -74,11 +71,8 @@ namespace GmailContacts
                     ctx.Contacts.Add(contact);
                     GoogleSync gs = new GoogleSync();
                     gs.Login();
-                    gs.GetContactsFromGoogle();
                     gs.CreateContact(contact);
                     gs.WriteContactsToDatabase();
-
-
                     ctx.SaveChanges();
                 }
                 catch (Exception ex)

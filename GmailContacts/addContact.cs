@@ -40,11 +40,8 @@ namespace GmailContacts
                     ctx.Contacts.Add(contact);
                     GoogleSync gs = new GoogleSync();
                     gs.Login();
-                    gs.GetContactsFromGoogle();
                     gs.CreateContact(contact);
                     gs.WriteContactsToDatabase();
-                    
-                    
                     ctx.SaveChanges();
                 }catch(Exception ex)
                 {

@@ -27,33 +27,35 @@ namespace GmailContacts
 
         public GoogleSync()
         {
-            settings = new RequestSettings("Google contacts tutorial", parameters);
+            settings = new RequestSettings("Google contacts", parameters);
+            
             cr = new ContactsRequest(settings);
+           
 
         }
 
         public void Login()
-        {
-            using (var stream =
-                new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
-            {
-                // The file token.json stores the user's access and refresh tokens, and is created
-                // automatically when the authorization flow completes for the first time.
-                string credPath = "token.json";
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(stream).Secrets,
-                    Scopes,
-                    "user",
-                    CancellationToken.None,
-                    new FileDataStore(credPath, true)).Result;
-            }
-
+        { 
             try
             {
-                // Translate the Oauth permissions to something the old client libray can read
+                using (var stream =
+               new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
+                {
+                    // The file token.json stores the user's access and refresh tokens, and is created
+                    // automatically when the authorization flow completes for the first time.
+                    string credPath = "token.json";
+
+                    credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                        GoogleClientSecrets.Load(stream).Secrets,
+                        Scopes,
+                        "user",
+                        CancellationToken.None,
+                        new FileDataStore(credPath, true)).Result;
+                }
 
                 parameters.AccessToken = credential.Token.AccessToken;
                 parameters.RefreshToken = credential.Token.RefreshToken;
+                GetContactsFromGoogle();
                 
             }
             catch (Exception ex)
@@ -61,9 +63,10 @@ namespace GmailContacts
                 MessageBox.Show(ex.Message);
             }
         }
-        public void GetFeed()
+        private void GetFeed()
         {
             f = cr.GetContacts();
+          
         }
         public void GetContactsFromGoogle()
         {
@@ -76,20 +79,15 @@ namespace GmailContacts
             }
             catch (Exception)
             {
-                MessageBox.Show("Az access token lejárt. Probáld újra és adj engedéjt.");
-                string path = "Google.Apis.Auth.OAuth2.Responses.TokenResponse-user";
-                if (System.IO.File.Exists(@"token.json\" + path))
+                try
                 {
-                    try
-                    {
-                        System.IO.File.Delete(@"token.json\" + path);
-                    }
-                    catch (System.IO.IOException e)
-                    {
-                        Console.WriteLine(e.Message);
-                        return;
-                    }
+                    GoogleWebAuthorizationBroker.ReauthorizeAsync(credential, CancellationToken.None);
                 }
+                catch (Exception)
+                {
+                    MessageBox.Show("Authorization failed.");
+                }
+                
             }
         }
 
@@ -188,11 +186,11 @@ namespace GmailContacts
             try
             {
                 cr.Delete(contact); 
+                
               
             }
             catch (GDataVersionConflictException e)
             {
-                // Etags mismatch: handle the exception.
                 MessageBox.Show(e.Message);
             }
         }

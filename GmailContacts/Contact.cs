@@ -17,7 +17,6 @@ namespace GmailContacts
 
         public Contact()
         {
-
         }
         public Contact(String FirstName, String LastName, String CompanyName, String JobTitle, String PhoneNumber)
         {
@@ -61,7 +60,5 @@ namespace GmailContacts
             }
             return false;
         }
-    }
-
-    
+    }  
 }

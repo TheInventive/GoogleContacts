@@ -14,7 +14,6 @@ namespace GmailContacts
         }
         public DbSet<Contact> Contacts { get; set; }
 
-
         public void AttachContext(List<Contact> list)
         {
             for (int i = 0; i < list.Count; i++)
@@ -22,8 +21,5 @@ namespace GmailContacts
                 Contacts.Attach(list[i]);
             }
         }
-
-    
-
     }
 }
